@@ -1,54 +1,53 @@
-import os
-from sklearn import svm
-from sklearn.preprocessing import StandardScaler
-from skimage.feature import hog
-from skimage import io, transform
+from pathlib import Path
+import matplotlib.pyplot as plt
 import numpy as np
+from sklearn import svm, metrics, datasets
+from sklearn.utils import Bunch
+from sklearn.model_selection import GridSearchCV, train_test_split
 
-def preprocess_image(image_path):
-    # Load image
-    image = io.imread(image_path)
-    
-    # Preprocess the image (e.g., resizing, gray scaling)
-    image = transform.resize(image, (256, 128))  # set size
-    image = (image * 255).astype(np.uint8)
-    
-    # Extract HOG features
-    features, _ = hog(image, pixels_per_cell=(16, 16),
-                      cells_per_block=(1, 1), visualize=True, multichannel=True)
-    return features
+from skimage.io import imread
+from skimage.transform import resize
 
-def train_exemplar_svm(training_data, labels):
-    # Scale features
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(training_data)
-    
-    # Train SVM
-    model = svm.LinearSVC()  # You can adjust parameters as needed
-    model.fit(scaled_features, labels)
-    
-    # Retrieve the trained weight vector W
-    W = model.coef_
-    return W, scaler
+def load_image_files(container_path, dimension=(64, 64)):
 
-def load_images_from_folder(folder_path):
+    image_dir = Path(container_path)
+    folders = [directory for directory in image_dir.iterdir() if directory.is_dir()]
+    categories = [fo.name for fo in folders]
+
+    descr = "A image classification dataset"
     images = []
-    labels = []
-    # List all files in the directory and read them as images
-    for filename in os.listdir(folder_path):
-        if filename.endswith(".jpg") or filename.endswith(".png"):
-            img_path = os.path.join(folder_path, filename)
-            # Preprocess and extract features from the image
-            img_features = preprocess_image(img_path)
-            images.append(img_features)
-            labels.append(1)  # Assuming all images are positive examples
-    return images, labels
+    flat_data = []
+    target = []
+    for i, direc in enumerate(folders):
+        for file in direc.iterdir():
+            img = skimage.io.imread(file)
+            img_resized = resize(img, dimension, anti_aliasing=True, mode='reflect')
+            flat_data.append(img_resized.flatten()) 
+            images.append(img_resized)
+            target.append(i)
+    flat_data = np.array(flat_data)
+    target = np.array(target)
+    images = np.array(images)
 
-# Define your image folder path
-image_folder_path = 'office_caltech_10/amazon/back_pack'
+    return Bunch(data=flat_data,
+                 target=target,
+                 target_names=categories,
+                 images=images,
+                 DESCR=descr)
 
-# Load and preprocess all images in the folder
-features, labels = load_images_from_folder(image_folder_path)
+image_dataset = load_image_files("office_caltech_10/amazon/back_pack")
 
-# Train the SVM and retrieve initial W and the scaler
-W_initial, feature_scaler = train_exemplar_svm(features, labels)
+X_train, X_test, y_train, y_test = train_test_split(
+    image_dataset.data, image_dataset.target, test_size=0.3,random_state=109)
+
+param_grid = [
+  {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
+  {'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']},
+ ]
+svc = svm.SVC()
+clf = GridSearchCV(svc, param_grid)
+clf.fit(X_train, y_train)
+
+y_pred = clf.predict(X_test)
+print("Classification report for - \n{}:\n{}\n".format(
+    clf, metrics.classification_report(y_test, y_pred)))
