@@ -1,53 +1,58 @@
 from pathlib import Path
-import matplotlib.pyplot as plt
 import numpy as np
-from sklearn import svm, metrics, datasets
-from sklearn.utils import Bunch
+from sklearn import svm, metrics
 from sklearn.model_selection import GridSearchCV, train_test_split
-
 from skimage.io import imread
 from skimage.transform import resize
+from sklearn.utils import Bunch
 
-def load_image_files(container_path, dimension=(64, 64)):
+def load_image_data(image_path, image_size=(64, 64)):
+    image_directory = Path(image_path)
+    sub_dirs = [sub_dir for sub_dir in image_directory.iterdir() if sub_dir.is_dir()]
+    category_names = [folder.name for folder in sub_dirs]
 
-    image_dir = Path(container_path)
-    folders = [directory for directory in image_dir.iterdir() if directory.is_dir()]
-    categories = [fo.name for fo in folders]
+    description = "An image classification dataset"
+    dataset_images = []
+    dataset_flat_data = []
+    dataset_labels = []
+    for label, sub_dir in enumerate(sub_dirs):
+        for file in sub_dir.iterdir():
+            image = imread(file)
+            image_resized = resize(image, image_size, anti_aliasing=True, mode='reflect')
+            dataset_flat_data.append(image_resized.flatten())
+            dataset_images.append(image_resized)
+            dataset_labels.append(label)
+    dataset_flat_data = np.array(dataset_flat_data)
+    dataset_labels = np.array(dataset_labels)
+    dataset_images = np.array(dataset_images)
 
-    descr = "A image classification dataset"
-    images = []
-    flat_data = []
-    target = []
-    for i, direc in enumerate(folders):
-        for file in direc.iterdir():
-            img = skimage.io.imread(file)
-            img_resized = resize(img, dimension, anti_aliasing=True, mode='reflect')
-            flat_data.append(img_resized.flatten()) 
-            images.append(img_resized)
-            target.append(i)
-    flat_data = np.array(flat_data)
-    target = np.array(target)
-    images = np.array(images)
+    return Bunch(data=dataset_flat_data,
+                 target=dataset_labels,
+                 target_names=category_names,
+                 images=dataset_images,
+                 DESCR=description)
 
-    return Bunch(data=flat_data,
-                 target=target,
-                 target_names=categories,
-                 images=images,
-                 DESCR=descr)
+# Load dataset
+dataset = load_image_data("office_caltech_10/amazon")
 
-image_dataset = load_image_files("office_caltech_10/amazon/back_pack")
-
+# Split dataset into training and test sets
 X_train, X_test, y_train, y_test = train_test_split(
-    image_dataset.data, image_dataset.target, test_size=0.3,random_state=109)
+    dataset.data, dataset.target, test_size=0.3, random_state=109)
 
-param_grid = [
-  {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
-  {'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']},
- ]
-svc = svm.SVC()
-clf = GridSearchCV(svc, param_grid)
-clf.fit(X_train, y_train)
+# Define parameter grid for GridSearch
+parameter_grid = [
+    {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
+    {'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']},
+]
 
-y_pred = clf.predict(X_test)
-print("Classification report for - \n{}:\n{}\n".format(
-    clf, metrics.classification_report(y_test, y_pred)))
+# Initialize the SVM classifier and GridSearch
+classifier = svm.SVC()
+grid_search = GridSearchCV(classifier, parameter_grid)
+grid_search.fit(X_train, y_train)
+
+# Predict on the test set
+predictions = grid_search.predict(X_test)
+
+# Print the classification report
+print(f"Classification report for classifier {grid_search}:\n"
+      f"{metrics.classification_report(y_test, predictions)}\n")
