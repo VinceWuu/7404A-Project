@@ -53,3 +53,4 @@ for filename in os.listdir(positive_sample_folder):
 
             # 打印分类器的权重值
             print(f"Positive sample {filename} 对应的分类器权重值: {model.coef_[0]}")
+
