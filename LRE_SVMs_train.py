@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import joblib
+from LRE_SVMs_Binary_train import LRE_SVMs_binary_train
 
 def binary_model_path(param):
     file = f"{param['model_path']}C{param['svm_C']}W{param['exemplar_weight']}L{param['lambda1']}-{param['lambda2']}c{param['cate_i']}-{param['cate_j']}.model.mat"
