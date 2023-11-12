@@ -6,9 +6,8 @@ addpath('.\lib\libsvm-3.17\matlab')
 %% parameters
 %dam_flag:
 %0: domain generalization
-%1: domain adaptation
 param.dam_flag = 0;
-% param.dam_flag = 1;
+
 
 %save_model_flag:
 %0: train model without save
@@ -22,13 +21,13 @@ if ~exist(param.model_path, 'dir')
 end
 
 %parameters
-param.svm_C = 0.001; %suggested range 10.^(-3:3)
-param.lambda1 = 1; %suggested range 10.^(-3:3)
-param.lambda2 = 4; %suggested range 2.^(-3:3) * lambda1
-param.exemplar_weight = 10; %please modify when necessary  % -1 means use number of negative samples
-param.prdct_top_num = 5; %please modify when necessary
+param.svm_C = 0.001; 
+param.lambda1 = 1; 
+param.lambda2 = 4; 
+param.exemplar_weight = 10; 
+param.prdct_top_num = 5; 
 
-%dam parameters, effective when dam_flag = 1
+%dam parameters
 param.mmd_sig = 1;
 param.dam_sig = 1;
 param.dam_g1 = 1;
