@@ -1,5 +1,7 @@
 This project aims to reproduce the paper：Domain Generalization and Adaptation Using Low Rank Exemplar SVMs’.
 
+The code is mainly developed using MATLAB
+
 In the project we have trained and tested domain generalization on the Office-Caltech dataset based on the Algorithms1 from the paper.
 We choose A, C as the source domain and D, W as the target domain.
 
